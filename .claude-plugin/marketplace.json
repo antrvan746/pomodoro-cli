@@ -1,0 +1,13 @@
+{
+  "name": "pomo",
+  "owner": { "name": "An Tran Van" },
+  "metadata": { "description": "pomo — a colorful pomodoro timer for the terminal" },
+  "plugins": [
+    {
+      "name": "pomo",
+      "source": "./plugin",
+      "description": "Pomodoro timer in Claude Code: /pomo start, pause, stats, a live status-line countdown, and /breathe guided breathing while Claude works",
+      "version": "0.4.0"
+    }
+  ]
+}

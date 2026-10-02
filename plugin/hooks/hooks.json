@@ -1,0 +1,18 @@
+{
+  "description": "pomo: the timer's status at session start, and guided breathing above the prompt while Claude works (the modules key needs CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1; other builds ignore it).",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "command -v pomo >/dev/null 2>&1 && pomo status --context 2>/dev/null || true"
+          }
+        ]
+      }
+    ]
+  },
+  "modules": [
+    "./register.tsx"
+  ]
+}

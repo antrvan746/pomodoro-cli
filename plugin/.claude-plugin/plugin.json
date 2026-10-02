@@ -1,0 +1,7 @@
+{
+  "name": "pomo",
+  "version": "0.4.0",
+  "description": "Pomodoro timer in Claude Code: /pomo start, pause, stats, a live status-line countdown, and /breathe guided breathing while Claude works",
+  "author": { "name": "An Tran Van" },
+  "keywords": ["pomodoro", "timer", "focus", "productivity", "status-line", "breathing", "mindfulness"]
+}
