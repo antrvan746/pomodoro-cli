@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -21,6 +23,7 @@ import (
 	"github.com/antrvan746/pomodoro-cli/internal/stats"
 	"github.com/antrvan746/pomodoro-cli/internal/store"
 	"github.com/antrvan746/pomodoro-cli/internal/ui"
+	"github.com/antrvan746/pomodoro-cli/internal/wmux"
 )
 
 var Version = "dev"
@@ -169,6 +172,12 @@ func announceFinished(r *store.Record) {
 // Commands
 
 func Execute() {
+	closePane := takeLaunchArgs()
+	done := func() {
+		if closePane {
+			_ = wmux.CloseSurface()
+		}
+	}
 	theme := os.Getenv("POMO_THEME")
 	if theme == "" {
 		theme = store.LoadConfig().Theme
@@ -187,8 +196,31 @@ func Execute() {
 		} else {
 			fmt.Fprintln(os.Stderr, accent(ui.Danger).Render("✗ ")+err.Error())
 		}
+		done()
 		os.Exit(1)
 	}
+	done()
+}
+
+// takeLaunchArgs strips the flags pomo adds to commands it types into a new
+// pane. --pomo-env=K=V sets an environment variable, so the line needs no
+// shell syntax and runs the same in cmd, PowerShell and sh; --close-wmux-pane
+// closes the wmux pane once the command ends.
+func takeLaunchArgs() (closePane bool) {
+	args := os.Args[:1]
+	for _, a := range os.Args[1:] {
+		switch {
+		case strings.HasPrefix(a, "--pomo-env="):
+			k, v, _ := strings.Cut(strings.TrimPrefix(a, "--pomo-env="), "=")
+			_ = os.Setenv(k, v)
+		case a == "--close-wmux-pane":
+			closePane = true
+		default:
+			args = append(args, a)
+		}
+	}
+	os.Args = args
+	return closePane
 }
 
 func newRoot() *cobra.Command {
@@ -315,14 +347,48 @@ func pomoCommand(args string) (string, error) {
 	var envs []string
 	for _, k := range []string{"POMO_HOME", "XDG_DATA_HOME", "POMO_THEME"} {
 		if v := os.Getenv(k); v != "" {
-			envs = append(envs, k+"="+shellQuote(v))
+			envs = append(envs, k+"="+v)
 		}
+	}
+	if runtime.GOOS == "windows" {
+		return windowsCommand(exe, args, envs), nil
+	}
+	for i, e := range envs {
+		k, v, _ := strings.Cut(e, "=")
+		envs[i] = k + "=" + shellQuote(v)
 	}
 	command := shellQuote(exe) + " " + args
 	if len(envs) > 0 {
 		command = "env " + strings.Join(envs, " ") + " " + command
 	}
 	return command, nil
+}
+
+// windowsCommand builds the line typed into a new wmux pane. Its shell may be
+// cmd, PowerShell or Git Bash, so the line is just a program and arguments:
+// environment variables travel as --pomo-env flags, and a path with spaces is
+// double-quoted, which all three read the same way.
+func windowsCommand(exe, args string, envs []string) string {
+	parts := []string{winQuote(filepath.ToSlash(exe))}
+	for _, e := range envs {
+		parts = append(parts, winQuote("--pomo-env="+e))
+	}
+	return strings.Join(append(parts, args), " ")
+}
+
+func winQuote(s string) string {
+	if strings.ContainsAny(s, " \t\\&()^|<>'%!") {
+		return `"` + s + `"`
+	}
+	return s
+}
+
+// argQuote quotes one argument for the line pomoCommand builds.
+func argQuote(s string) string {
+	if runtime.GOOS == "windows" {
+		return winQuote(s)
+	}
+	return shellQuote(s)
 }
 
 func printOpened(where string) {

@@ -8,11 +8,12 @@ import (
 	"os/exec"
 	"runtime"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/antrvan746/pomodoro-cli/internal/cmux"
 	"github.com/antrvan746/pomodoro-cli/internal/store"
+	"github.com/antrvan746/pomodoro-cli/internal/sysx"
+	"github.com/antrvan746/pomodoro-cli/internal/wmux"
 )
 
 func Send(title, body string, sound bool) {
@@ -29,7 +30,17 @@ func Send(title, body string, sound bool) {
 		if sound {
 			_ = exec.Command("canberra-gtk-play", "-i", "complete").Run()
 		}
+	case "windows":
+		sendWindows(title, body, sound)
 	}
+}
+
+// sendWindows shows a desktop notification on Windows. Windows has no
+// notify-send; the options are a toast via PowerShell's WinRT bridge, a
+// balloon tip via System.Windows.Forms, or msg.exe. It must not block for
+// long: the watcher calls it as a phase ends.
+func sendWindows(title, body string, sound bool) {
+	// TODO(you): show title/body as a notification, chiming if sound is set.
 }
 
 // Announce notifies about a finished session, respecting the config.
@@ -38,9 +49,12 @@ func Announce(r *store.Record, cfg store.Config) {
 		return
 	}
 	title, body := Message(r, cfg)
-	// Inside cmux, use its notifications: they badge the workspace in the
-	// sidebar and avoid a duplicate macOS banner.
+	// Inside cmux or wmux, use their notifications: they badge the workspace
+	// in the sidebar and avoid a duplicate desktop banner.
 	if cfg.Cmux && cmux.Available() && cmux.Notify(title, body) == nil {
+		return
+	}
+	if cfg.Wmux && wmux.Available() && wmux.Notify(title+" — "+body) == nil {
 		return
 	}
 	Send(title, body, cfg.Sound)
@@ -67,7 +81,7 @@ func SpawnWatcher(id string) error {
 		return err
 	}
 	cmd := exec.Command(exe, "__watch", id)
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
+	sysx.Detach(cmd)
 	if err := cmd.Start(); err != nil {
 		return err
 	}

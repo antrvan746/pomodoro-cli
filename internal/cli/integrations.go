@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -338,7 +339,13 @@ func setupClaude() error {
 	if prevLine.Command != "" {
 		command += " --wrap " + shellQuote(prevLine.Command)
 	}
-	line := map[string]any{"type": "command", "command": command, "refreshInterval": 1}
+	// Spawning processes is slow on Windows (Claude Code runs this through Git
+	// Bash, then sh for --wrap): at 1 s, runs pile up faster than they finish.
+	refresh := 1
+	if runtime.GOOS == "windows" {
+		refresh = 10
+	}
+	line := map[string]any{"type": "command", "command": command, "refreshInterval": refresh}
 	if prevLine.Padding != nil {
 		line["padding"] = *prevLine.Padding
 	}

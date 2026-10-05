@@ -10,7 +10,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -18,6 +17,7 @@ import (
 	"github.com/antrvan746/pomodoro-cli/internal/breath"
 	"github.com/antrvan746/pomodoro-cli/internal/launch"
 	"github.com/antrvan746/pomodoro-cli/internal/store"
+	"github.com/antrvan746/pomodoro-cli/internal/sysx"
 	"github.com/antrvan746/pomodoro-cli/internal/ui"
 )
 
@@ -46,8 +46,7 @@ func turnPath(key string) string { return filepath.Join(breatheDir(), key+".turn
 func panePath(key string) string { return filepath.Join(breatheDir(), key+".pane") }
 
 func alive(pid int) bool {
-	err := syscall.Kill(pid, 0)
-	return pid > 0 && (err == nil || errors.Is(err, syscall.EPERM))
+	return sysx.Alive(pid)
 }
 
 func paneOpen(key string) bool {
@@ -169,7 +168,7 @@ func breatheHookCmd() *cobra.Command {
 					return nil
 				}
 				c := exec.Command(exe, "breathe", "open", key, token)
-				c.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
+				sysx.Detach(c)
 				if c.Start() == nil {
 					_ = c.Process.Release()
 				}
@@ -194,7 +193,7 @@ func breatheOpenCmd() *cobra.Command {
 			if b, err := os.ReadFile(turnPath(key)); err != nil || string(b) != token || paneOpen(key) {
 				return nil
 			}
-			command, err := pomoCommand("breathe pane " + shellQuote(key))
+			command, err := pomoCommand("breathe pane " + argQuote(key))
 			if err != nil {
 				return nil
 			}
