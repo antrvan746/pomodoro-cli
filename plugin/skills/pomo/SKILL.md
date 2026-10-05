@@ -11,7 +11,7 @@ background process sends a desktop notification when the timer ends.
 
 Always pass `--json` and read the result; never run bare `pomo`. Starting a
 session from here also opens the big clock in a pane next to the user's
-terminal (cmux, tmux, WezTerm, kitty, iTerm, Terminal, Ghostty); pass
+terminal (cmux, wmux, tmux, WezTerm, kitty, iTerm, Terminal, Ghostty); pass
 `--no-open` if they don't want it. `pomo watch` opens the clock on demand.
 
 ## Commands

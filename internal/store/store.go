@@ -13,8 +13,9 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"syscall"
 	"time"
+
+	"github.com/antrvan746/pomodoro-cli/internal/sysx"
 )
 
 type Kind string
@@ -52,6 +53,7 @@ type Config struct {
 	Theme          string  `json:"theme"`
 	OpenClock      string  `json:"open_clock"`      // auto | always | never
 	Cmux           bool    `json:"cmux"`            // sidebar pill + notifications when running in cmux
+	Wmux           bool    `json:"wmux"`            // notifications + clock pane when running in wmux
 	StatusView     string  `json:"statusline_view"` // minimal | classic | full
 	Breathe        Breathe `json:"breathe"`
 }
@@ -68,7 +70,7 @@ func DefaultConfig() Config {
 	return Config{
 		FocusMin: 25, ShortBreakMin: 5, LongBreakMin: 15, LongBreakEvery: 4,
 		DailyGoal: 8, AutoStartBreak: true, AutoStartFocus: false, Notify: true, Sound: true,
-		Theme: "catppuccin", StatusView: "classic", OpenClock: "auto", Cmux: true,
+		Theme: "catppuccin", StatusView: "classic", OpenClock: "auto", Cmux: true, Wmux: true,
 		Breathe: Breathe{Enabled: true, Exercise: "hrv", Style: "random", Delay: 5},
 	}
 }
@@ -200,10 +202,10 @@ func withLock(fn func() error) error {
 		return err
 	}
 	defer f.Close()
-	if err := syscall.Flock(int(f.Fd()), syscall.LOCK_EX); err != nil {
+	if err := sysx.Lock(f); err != nil {
 		return err
 	}
-	defer syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
+	defer sysx.Unlock(f)
 	return fn()
 }
 
@@ -596,7 +598,7 @@ func ViewerOpen() bool {
 			continue
 		}
 		f := filepath.Join(viewersDir(), e.Name())
-		if err := syscall.Kill(pid, 0); err != nil && !errors.Is(err, syscall.EPERM) {
+		if !sysx.Alive(pid) {
 			_ = os.Remove(f) // stale
 			continue
 		}

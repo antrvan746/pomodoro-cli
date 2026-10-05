@@ -51,6 +51,7 @@ var configKeys = []configKey{
 	boolKey("notify", func(c *store.Config) *bool { return &c.Notify }),
 	boolKey("sound", func(c *store.Config) *bool { return &c.Sound }),
 	boolKey("cmux", func(c *store.Config) *bool { return &c.Cmux }),
+	boolKey("wmux", func(c *store.Config) *bool { return &c.Wmux }),
 	enumKey("theme", func(c *store.Config) *string { return &c.Theme }, ui.ThemeNames()),
 	enumKey("open_clock", func(c *store.Config) *string { return &c.OpenClock }, []string{"auto", "always", "never"}),
 	enumKey("statusline_view", func(c *store.Config) *string { return &c.StatusView }, []string{"minimal", "classic", "full"}),

@@ -8,7 +8,7 @@ A big gradient clock, a GitHub-style heatmap of your focus, a live countdown in
 Claude Code's status line, and a scriptable CLI that Claude Code and Codex can drive.
 
 [![Go](https://img.shields.io/badge/go-1.26+-00ADD8?logo=go&logoColor=white)](https://go.dev)
-[![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-lightgrey)](#install)
+[![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey)](#install)
 [![License: MIT](https://img.shields.io/badge/license-MIT-f5c2e7)](LICENSE)
 
 <img src="docs/assets/demo.gif" alt="pomo running in a terminal: big gradient clock, labelling a session, pausing, and the stats view" width="820">
@@ -20,13 +20,13 @@ Claude Code's status line, and a scriptable CLI that Claude Code and Codex can d
 - **A clock you can see from across the room.** Full-screen gradient digits, a progress bar, cycle dots, and today's tally.
 - **Stats worth looking at.** A year-long heatmap, streaks, the last 7 days, top labels, and your hourly and weekday rhythm.
 - **One timer per machine.** Start it in a terminal, in Claude Code or in Codex. Every view joins the same running session.
-- **Lives where you work.** A status-line segment for Claude Code, a `/pomo` slash command, a Codex prompt, cmux sidebar pills, and `pomo status --short` for tmux or starship.
+- **Lives where you work.** A status-line segment for Claude Code, a `/pomo` slash command, a Codex prompt, cmux sidebar pills, wmux notifications and panes, and `pomo status --short` for tmux or starship.
 - **Breathe while the agent thinks.** Guided breathing fills the 10–60 s waits while an agent works.
 - **Scriptable.** Every command speaks `--json`, and it's a single static Go binary with no runtime dependencies.
 
 ## Install
 
-Requires Go 1.26+ on macOS or Linux.
+Requires Go 1.26+ on macOS, Linux or Windows.
 
 ```sh
 go install github.com/antrvan746/pomodoro-cli/cmd/pomo@latest
@@ -112,7 +112,7 @@ for the auth refactor"* work too. New sessions are told about a running timer wh
 they open.
 
 **The big clock opens by itself.** When an agent starts a timer, pomo opens the
-full-screen clock in a pane next to you: a split in cmux, tmux, WezTerm or kitty, or a
+full-screen clock in a pane next to you: a split in cmux, wmux, tmux, WezTerm or kitty, or a
 new iTerm, Terminal or Ghostty window. It never opens a second clock in a workspace
 that already shows one. `q` closes the pane and the timer keeps running. Turn it off
 with `pomo config set open_clock never`, or skip it once with `--no-open`.
@@ -151,6 +151,17 @@ With [cmux](https://cmux.com), pomo shows up with no setup:
 - **Clock pane:** an agent's `/pomo start` opens the big clock in a split.
 
 Turn it off with `pomo config set cmux false`.
+
+## wmux
+
+With [wmux](https://github.com/amirlehmam/wmux) on Windows, pomo works with no setup:
+
+- **Notifications:** when a phase ends, wmux shows the toast and plays its sound, and the workspace it started from gets an unread badge. It replaces the desktop notification, so you don't get two.
+- **Clock pane:** an agent's `/pomo start` opens the big clock in a split, whatever shell the pane runs (cmd, PowerShell or Git Bash). The pane closes itself on `q` or when the timer stops.
+
+pomo talks to wmux's pipe directly, so it doesn't need wmux's Node CLI. wmux
+has no sidebar pill yet, so the countdown lives in the Claude Code status line.
+Turn it off with `pomo config set wmux false`.
 
 ## Breathe while the agent works
 
@@ -199,6 +210,7 @@ pomo config set auto_start_break false
 | `theme` | `catppuccin` | see [Themes](#themes) |
 | `statusline_view` | `classic` | `minimal`, `classic`, `full` |
 | `cmux` | `true` | sidebar pill and notifications |
+| `wmux` | `true` | notifications and clock pane |
 | `open_clock` | `auto` | `auto` (only when an agent starts it), `always`, `never` |
 
 Data lives in `~/.local/share/pomo/` (or `$XDG_DATA_HOME/pomo`, or `$POMO_HOME`):
@@ -221,6 +233,8 @@ internal/ui/       Bubble Tea timer, big clock, stats view, themes, status line
 internal/store/    sessions, active timer, config (file-locked JSON)
 internal/stats/    streaks, heatmap, rhythm
 internal/daemon/   background watcher that ends phases and notifies
+internal/wmux/     wmux notifications and panes, over its pipe
+internal/sysx/     file locks and process helpers for Unix and Windows
 internal/breath/   breathing exercises
 plugin/            Claude Code plugin: /pomo, skill, status line and breathing hooks
 ```

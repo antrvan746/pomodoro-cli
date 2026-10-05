@@ -8,6 +8,8 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/antrvan746/pomodoro-cli/internal/wmux"
 )
 
 // ErrNoTerminal means no supported terminal could be detected.
@@ -77,6 +79,13 @@ func appleScriptString(s string) string {
 // Order matters: multiplexers first (they live inside another terminal), then
 // the host terminal app.
 var terminals = []terminal{
+	// wmux types the command into the pane's shell, which may be cmd,
+	// PowerShell or bash, so pomo closes the pane itself when it exits.
+	{"wmux split", wmux.Available, func(c string) error {
+		return wmux.Split(c+" --close-wmux-pane", false)
+	}, func(c string) error {
+		return wmux.Split(c+" --close-wmux-pane", true)
+	}},
 	{"cmux split", func() bool { return env("CMUX_SURFACE_ID") }, func(c string) error {
 		// cmux types the command into a new shell; exit closes the pane after.
 		return run(cmuxBin(), "new-split", "right", "--surface", os.Getenv("CMUX_SURFACE_ID"),
